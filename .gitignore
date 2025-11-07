@@ -1,0 +1,9 @@
+tmp/
+pyenv/
+modules/.env
+Dockerfile
+__pycache__
+*/__pycache__
+*.csv
+*.txt
+*.json
