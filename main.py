@@ -55,15 +55,10 @@ def generate_filename(prefix: str, extension: str) -> str:
     return f"{prefix}_{timestamp}_{unique_id}.{extension}"
 
 
-# 0. Hello endpoint for testing
-@app.get("/hello")
-async def hello():
-    """Simple hello endpoint for testing."""
-    return {
-        "message": "Hello from Domain Tools API!",
-        "status": "ready",
-        "endpoints": 5,
-    }
+# 0. root endpoint for testing
+@app.get("/")
+def root():
+    return {"message": "Hello from minimal FastAPI on Vercel!"}
 
 
 # 1. Extract domains from Namekart API
