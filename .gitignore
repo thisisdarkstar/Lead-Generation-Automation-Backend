@@ -7,4 +7,5 @@ __pycache__
 *.csv
 *.txt
 *.json
+!vercel.json
 .vercel
