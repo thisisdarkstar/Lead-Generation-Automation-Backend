@@ -27,9 +27,9 @@ app.add_middleware(
 )
 
 # Ensure data directory exists
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+# DATA_DIR = os.path.join(os.path.dirname(__file__), "data")  # FOR LOCAL USE ONLY
+DATA_DIR = "/tmp/data"
 os.makedirs(DATA_DIR, exist_ok=True)
-
 
 # Pydantic models
 class NamekartRequest(BaseModel):
@@ -115,11 +115,11 @@ async def find_lead_for_single(domain: str, debug: bool = False):
     """
     try:
         leads_dict = find_leads([domain])
-        leads = leads_dict.get(domain, [])
+        # leads_dict: { domain: [{domain, url}, ...], ... }
         return {
             "success": True,
-            "leads": leads,  # This is a list of {domain, url}
-            "count": len(leads),
+            "leads": leads_dict,  # <-- Now a mapping, not just a list!
+            "count": 1,
             "domain": domain,
             "message": f"Lead search completed for {domain}",
         }
