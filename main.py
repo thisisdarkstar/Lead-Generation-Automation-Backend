@@ -110,20 +110,19 @@ async def extract_namekart(request: NamekartRequest):
 
 # 4.1 Find leads for single domain
 @app.get("/api/find-leads", response_model=dict)
-async def find_lead_for_single(domain: str, debug: bool = False):
+async def find_lead_for_single(domain: str, probe: bool = False):
     """
     Find potential leads for a single domain.
-    Usage: /api/find-leads?domain=apex.com
+    Usage: /api/find-leads?domain=apex.com&probe=true
     """
     try:
-        # Synchronous lead finding
-        leads_dict = search_single(domain)
+        leads_dict = search_single(domain, probe=probe)
         return {
             "success": True,
             "leads": leads_dict,
             "count": len(leads_dict.get(domain, [])),
             "domain": domain,
-            "message": f"Lead search completed for {domain}",
+            "message": f"Lead search completed for {domain} (probe={probe})",
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
@@ -131,9 +130,13 @@ async def find_lead_for_single(domain: str, debug: bool = False):
 
 # 4.2 Find leads for domain.txt file
 @app.post("/api/find-leads", response_model=dict)
-async def find_leads_from_file(file: UploadFile = File(...), debug: bool = Form(False)):
+async def find_leads_from_file(
+    file: UploadFile = File(...),
+    probe: bool = Form(False),  # Accept from form (checkbox, toggle, or similar)
+):
     """
     Upload a .txt file with one domain per line.
+    Optional 'probe' form field enables live/parked verification.
     """
     input_path = None
     try:
@@ -151,14 +154,13 @@ async def find_leads_from_file(file: UploadFile = File(...), debug: bool = Form(
         if not domains:
             raise HTTPException(status_code=400, detail="No domains found in file.")
 
-        leads_dict = get_domain_extensions_from_list(domains)
-        # leads_dict: { input_domain: [ {domain, url}, ... ], ... }
+        leads_dict = get_domain_extensions_from_list(domains, probe=probe)
         return {
             "success": True,
             "leads": leads_dict,
             "count": len(domains),
             "domains": domains,
-            "message": f"Lead search completed for {len(domains)} domains",
+            "message": f"Lead search completed for {len(domains)} domains (probe={probe})",
         }
     except Exception as e:
         if input_path and os.path.exists(input_path):
