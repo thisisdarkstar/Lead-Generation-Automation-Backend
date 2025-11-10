@@ -9,7 +9,8 @@ from datetime import datetime
 
 # Import modules
 from modules.extract_domains_api import fetch_domains, extract_unique_domains
-from modules.domain_lead_finder import find_leads
+from modules.domain_lead_finder import search_single, get_domain_extensions_from_list
+
 
 app = FastAPI(
     title="Domain Tools API",
@@ -30,6 +31,7 @@ app.add_middleware(
 # DATA_DIR = os.path.join(os.path.dirname(__file__), "data")  # FOR LOCAL USE ONLY
 DATA_DIR = "/tmp/data"
 os.makedirs(DATA_DIR, exist_ok=True)
+
 
 # Pydantic models
 class NamekartRequest(BaseModel):
@@ -107,19 +109,19 @@ async def extract_namekart(request: NamekartRequest):
 
 
 # 4.1 Find leads for single domain
-@app.get("/api/find-leads")
+@app.get("/api/find-leads", response_model=dict)
 async def find_lead_for_single(domain: str, debug: bool = False):
     """
     Find potential leads for a single domain.
     Usage: /api/find-leads?domain=apex.com
     """
     try:
-        leads_dict = find_leads([domain])
-        # leads_dict: { domain: [{domain, url}, ...], ... }
+        # Synchronous lead finding
+        leads_dict = search_single(domain)
         return {
             "success": True,
-            "leads": leads_dict,  # <-- Now a mapping, not just a list!
-            "count": 1,
+            "leads": leads_dict,
+            "count": len(leads_dict.get(domain, [])),
             "domain": domain,
             "message": f"Lead search completed for {domain}",
         }
@@ -128,7 +130,7 @@ async def find_lead_for_single(domain: str, debug: bool = False):
 
 
 # 4.2 Find leads for domain.txt file
-@app.post("/api/find-leads")
+@app.post("/api/find-leads", response_model=dict)
 async def find_leads_from_file(file: UploadFile = File(...), debug: bool = Form(False)):
     """
     Upload a .txt file with one domain per line.
@@ -149,9 +151,8 @@ async def find_leads_from_file(file: UploadFile = File(...), debug: bool = Form(
         if not domains:
             raise HTTPException(status_code=400, detail="No domains found in file.")
 
-        leads_dict = find_leads(domains)
+        leads_dict = get_domain_extensions_from_list(domains)
         # leads_dict: { input_domain: [ {domain, url}, ... ], ... }
-
         return {
             "success": True,
             "leads": leads_dict,
@@ -159,12 +160,11 @@ async def find_leads_from_file(file: UploadFile = File(...), debug: bool = Form(
             "domains": domains,
             "message": f"Lead search completed for {len(domains)} domains",
         }
-
     except Exception as e:
         if input_path and os.path.exists(input_path):
             try:
                 os.remove(input_path)
-            except:
+            except Exception:
                 pass
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
 
